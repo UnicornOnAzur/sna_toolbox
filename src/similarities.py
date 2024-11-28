@@ -3,11 +3,10 @@
 @author: UnicornOnAzur
 
 This module provides functions to calculate five similarity measures, namely:
-Overlap coefficient, Jaccard similarity,  Dice-Sørensen coefficient, Cosine
+Overlap coefficient, Jaccard similarity, Dice-Sørensen coefficient, Cosine
 similarity, and simple matching coefficient. Input validation is performed to
 ensure that the provided sets meet the required criteria for each calculation.
 """
-
 
 # Standard library
 import functools
@@ -66,7 +65,7 @@ def validate_input(option: typing.Optional[str] = None) -> typing.Callable:
                 warnings.warn("Both sets are empty!", UserWarning)
                 return 0
             # Ensure at least one set is non-empty if option is "one"
-            if option == "one" and any(not s for s in args):
+            if option == "one" and any(not s for s in args[:2]):
                 raise ValueError("At least one of the sets must be non-empty.")
 
             # Ensure all elements in the sets are of the same type
@@ -157,7 +156,7 @@ def cosine_similarity(set1: set, set2: set) -> float:
 
 
 @validate_input("one")
-def simple_matching_coefficient(set1: set, set2: set) -> float:
+def simple_matching_coefficient(set1: set, set2: set, all=None) -> float:
 
     """Calculate the simple matching coefficient between two sets.
 
@@ -169,22 +168,20 @@ def simple_matching_coefficient(set1: set, set2: set) -> float:
 
     Parameters:
     set1: The first set.
-    set2: The second set.
+    set2: The second set.'
+    all: <>
 
     Returns:
     float: The simple matching coefficient between the two sets.
     """
-    set1, set2 = list(set1), list(set2)
-    vector1 = [1] * len(set1)
-    vector2 = [1 if i in set1 else 0 for i in set2]
-    p, q, r, s = 0, 0, 0, 0
-    for v1, v2 in zip(vector1, vector2):
-        if v1 == v2:
-            p += v1 == 1
-            s += v1 == 0
-        else:
-            q += v1 == 1
-            r += v1 == 0
+    if not all:
+        all = set1 | set2
+    vector1: list[int] = [1 if i in set1 else 0 for i in all]
+    vector2: list[int] = [1 if i in set2 else 0 for i in all]
+    p: int = sum(v1 == 1 and v2 == 1 for v1, v2 in zip(vector1, vector2))
+    s: int = sum(v1 == 0 and v2 == 0 for v1, v2 in zip(vector1, vector2))
+    q: int = sum(v1 == 1 and v2 == 0 for v1, v2 in zip(vector1, vector2))
+    r: int = sum(v1 == 0 and v2 == 1 for v1, v2 in zip(vector1, vector2))
     return (p + s) / (p + q + r + s)
 
 
@@ -196,9 +193,9 @@ def demo():
 
     print(f"Set A: {set_a} and set B: {set_b}")
     print("Overlap Coefficient:", overlap_coefficient(set_a, set_b))
-    print("Jaccard Coefficient:", jaccard_similarity(set_a, set_b))
+    print("Jaccard Similarity:", jaccard_similarity(set_a, set_b))
     print("Dice-Sørensen Coefficient:", dice_sørensen_coefficient(set_a, set_b))  # noqa: E501
-    print("Cosine Coefficient:", cosine_similarity(set_a, set_b))
+    print("Cosine Similarity:", cosine_similarity(set_a, set_b))
     print("Simple Matching Coefficient:", simple_matching_coefficient(set_a, set_b))  # noqa: E501
 
 
