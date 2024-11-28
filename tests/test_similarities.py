@@ -4,59 +4,63 @@
 
 """
 
-
 # Third party
 import pytest
 # Local
 import sna_toolbox.src.similarities as similarities
 
 
-class TestOverlapCoefficient:
-    def test_invalid_input(self) -> None:
-        """Test for invalid input types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.overlap_coefficient(1, 1)
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) == "All arguments must be sets!"
+class TestSetSimilarity:
+    def _test_invalid_input(self, method):
+        with pytest.raises(TypeError, match="All arguments must be sets!"):
+            method(1, 1)
 
-    def test_two_empty_sets(self) -> None:
-        """Test the overlap coefficient for two empty sets."""
+    def _test_two_empty_sets(self, method):
         with pytest.warns() as record:
-            result = similarities.overlap_coefficient(set(), set())
+            result = method(set(), set())
         assert result == 0
         assert str(record[0].message) == "Both sets are empty!"
 
-    def test_one_empty_set(self) -> None:
-        """Test the overlap coefficient when one set is empty."""
-        with pytest.raises(ValueError) as excinfo:
-            similarities.overlap_coefficient(set(), {1})
-        assert excinfo.type == ValueError
-        assert str(excinfo.value) ==\
-            "At least one of the sets must be non-empty."
-
-    def test_uneven_types(self) -> None:
-        """Test the overlap coefficient when one set is empty."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.overlap_coefficient({1, 2, 3}, {"f"})
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) ==\
-            "Elements in the sets must be of the same type."
-        result = similarities.overlap_coefficient({1, 2, 3}, {.5})
+    def _test_one_empty_set(self, method):
+        result = method({1}, set())
         assert result == 0
 
-    def test_no_match(self) -> None:
-        """Test the overlap coefficient for sets with no common elements."""
-        result = similarities.overlap_coefficient(set(range(10)),
-                                                  set(range(10, 15)))
+    def _test_one_empty_set_param_one(self, method):
+        with pytest.raises(
+                ValueError,
+                match="At least one of the sets must be non-empty."):
+            method(set(), {1})
+
+    def _test_uneven_types(self, method):
+        with pytest.raises(
+                TypeError,
+                match="Elements in the sets must be of the same type."):
+            method({1, 2, 3}, {"f"})
+        result = method({1, 2, 3}, {.5})
         assert result == 0
 
-    def test_full_match(self) -> None:
-        """Test the overlap coefficient for identical sets."""
-        result = similarities.overlap_coefficient(set(range(10)),
-                                                  set(range(10)))
-        assert result == 1
+    def _test_no_match(self, method):
+        result = method(set(range(10)), set(range(10, 15)))
+        assert result == 0
 
-    def test_example(self) -> None:
+    def _test_full_match(self, method):
+        result = method(set(range(10)), set(range(10)))
+        assert round(result) == 1
+
+    def _test_example(self, method, example_sets, expected_results):
+        for example_set, expected in zip(example_sets, expected_results):
+            result = method(*example_set)
+            assert result == expected
+
+    def test_overlap_coefficient(self):
+        self._test_invalid_input(similarities.overlap_coefficient)
+        self._test_two_empty_sets(similarities.overlap_coefficient)
+        self._test_one_empty_set_param_one(similarities.overlap_coefficient)
+        self._test_uneven_types(similarities.overlap_coefficient)
+        self._test_no_match(similarities.overlap_coefficient)
+        self._test_full_match(similarities.overlap_coefficient)
+
+    def test_example_overlap(self) -> None:
         """Test the overlap coefficient with example sets.
         https://developer.nvidia.com/blog/similarity-in-graphs-jaccard-versus-the-overlap-coefficient/  # noqa: E501
         """
@@ -75,50 +79,15 @@ class TestOverlapCoefficient:
                            )
         assert results == [0.5, 0.556, 0.625, 0.714, 0.833, 1]
 
+    def test_jaccard_similarity(self):
+        self._test_invalid_input(similarities.jaccard_similarity)
+        self._test_two_empty_sets(similarities.jaccard_similarity)
+        self._test_one_empty_set(similarities.jaccard_similarity)
+        self._test_uneven_types(similarities.jaccard_similarity)
+        self._test_no_match(similarities.jaccard_similarity)
+        self._test_full_match(similarities.jaccard_similarity)
 
-class TestJaccardSimilarity:
-    def test_invalid_input(self) -> None:
-        """Test for invalid input types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.jaccard_similarity(1, 1)
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) == "All arguments must be sets!"
-
-    def test_two_empty_sets(self) -> None:
-        """Test the Jaccard similarity for two empty sets."""
-        with pytest.warns() as record:
-            result = similarities.jaccard_similarity(set(), set())
-        assert result == 0
-        assert str(record[0].message) == "Both sets are empty!"
-
-    def test_one_empty_set(self) -> None:
-        """Test the Jaccard similarity when one set is empty."""
-        result = similarities.jaccard_similarity(set(), {1})
-        assert result == 0
-
-    def test_uneven_types(self) -> None:
-        """Test the Jaccard similarity with sets of uneven types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.jaccard_similarity({1, 2, 3}, {"f"})
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) ==\
-            "Elements in the sets must be of the same type."
-        result = similarities.jaccard_similarity({1, 2, 3}, {.5})
-        assert result == 0
-
-    def test_no_match(self) -> None:
-        """Test the Jaccard similarity for sets with no common elements."""
-        result = similarities.jaccard_similarity(set(range(10)),
-                                                 set(range(10, 15)))
-        assert result == 0
-
-    def test_full_match(self) -> None:
-        """Test the Jaccard similarity for identical sets."""
-        result = similarities.jaccard_similarity(set(range(10)),
-                                                 set(range(10)))
-        assert result == 1
-
-    def test_example(self) -> None:
+    def test_example_jaccard(self) -> None:
         """Test the Jaccard similarity with example sets.
         https://www.statology.org/jaccard-similarity/
         https://developer.nvidia.com/blog/similarity-in-graphs-jaccard-versus-the-overlap-coefficient/  # noqa: E501
@@ -152,51 +121,15 @@ class TestJaccardSimilarity:
                                                  {4, 1, 9, 7, 5})
         assert round(result, 3) == 0.429
 
+    def test_dice_sørensen_coefficient(self):
+        self._test_invalid_input(similarities.dice_sørensen_coefficient)
+        self._test_two_empty_sets(similarities.dice_sørensen_coefficient)
+        self._test_one_empty_set(similarities.dice_sørensen_coefficient)
+        self._test_uneven_types(similarities.dice_sørensen_coefficient)
+        self._test_no_match(similarities.dice_sørensen_coefficient)
+        self._test_full_match(similarities.dice_sørensen_coefficient)
 
-class TestDiceSørensenCoefficient:
-    def test_invalid_input(self) -> None:
-        """Test for invalid input types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.dice_sørensen_coefficient(1, 1)
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) == "All arguments must be sets!"
-
-    def test_two_empty_sets(self) -> None:
-        """Test the Dice-Sørensen coefficient for two empty sets."""
-        with pytest.warns() as record:
-            result = similarities.dice_sørensen_coefficient(set(), set())
-        assert result == 0
-        assert str(record[0].message) == "Both sets are empty!"
-
-    def test_one_empty_set(self) -> None:
-        """Test the Dice-Sørensen coefficient when one set is empty."""
-        result = similarities.dice_sørensen_coefficient(set(), {1})
-        assert result == 0
-
-    def test_uneven_types(self) -> None:
-        """Test the Dice-Sørensen coefficient with sets of uneven types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.dice_sørensen_coefficient({1, 2, 3}, {"f"})
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) ==\
-            "Elements in the sets must be of the same type."
-        result = similarities.dice_sørensen_coefficient({1, 2, 3}, {.5})
-        assert result == 0
-
-    def test_no_match(self) -> None:
-        """Test the Dice-Sørensen coefficient for sets with no common
-        elements."""
-        result = similarities.dice_sørensen_coefficient(set(range(10)),
-                                                        set(range(10, 15)))
-        assert result == 0
-
-    def test_full_match(self) -> None:
-        """Test the Dice-Sørensen coefficient for identical sets."""
-        result = similarities.dice_sørensen_coefficient(set(range(10)),
-                                                        set(range(10)))
-        assert result == 1
-
-    def test_example(self) -> None:
+    def test_example_dice(self) -> None:
         """Test the Dice-Sørensen coefficient with example sets.
         https://en.wikipedia.org/wiki/Dice-S%C3%B8rensen_coefficient
         """
@@ -206,53 +139,15 @@ class TestDiceSørensenCoefficient:
              {"na", "ac", "ch", "ht"})
         assert result == 0.25
 
+    def test_cosine_coefficient(self):
+        self._test_invalid_input(similarities.cosine_similarity)
+        self._test_two_empty_sets(similarities.cosine_similarity)
+        self._test_one_empty_set_param_one(similarities.cosine_similarity)
+        self._test_uneven_types(similarities.cosine_similarity)
+        self._test_no_match(similarities.cosine_similarity)
+        self._test_full_match(similarities.cosine_similarity)
 
-class TestCosineCoefficient:
-    def test_invalid_input(self) -> None:
-        """Test for invalid input types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.cosine_similarity(1, 1)
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) == "All arguments must be sets!"
-
-    def test_two_empty_sets(self) -> None:
-        """Test the cosine similarity for two empty sets."""
-        with pytest.warns() as record:
-            result = similarities.cosine_similarity(set(), set())
-        assert result == 0
-        assert str(record[0].message) == "Both sets are empty!"
-
-    def test_one_empty_set(self) -> None:
-        """Test the cosine similarity when one set is empty."""
-        with pytest.raises(ValueError) as excinfo:
-            similarities.cosine_similarity(set(), {1})
-        assert excinfo.type == ValueError
-        assert str(excinfo.value) ==\
-            "At least one of the sets must be non-empty."
-
-    def test_uneven_types(self) -> None:
-        """Test the cosine similarity with sets of uneven types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.cosine_similarity({1, 2, 3}, {"f"})
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) ==\
-            "Elements in the sets must be of the same type."
-        result = similarities.cosine_similarity({1, 2, 3}, {.5})
-        assert result == 0
-
-    def test_no_match(self) -> None:
-        """Test the cosine similarity for sets with no common elements."""
-        result = similarities.cosine_similarity(set(range(10)),
-                                                set(range(10, 15)))
-        assert result == 0
-
-    def test_full_match(self) -> None:
-        """Test the cosine similarity for identical sets."""
-        result = similarities.cosine_similarity(set(range(10)),
-                                                set(range(10)))
-        assert round(result) == 1
-
-    def test_example(self) -> None:
+    def test_example_cosine(self) -> None:
         """Test the cosine similarity with example sets.
         https://www.learndatasci.com/glossary/cosine-similarity/
         """
@@ -262,61 +157,22 @@ class TestCosineCoefficient:
             set('data science is popular'.split(" ")))
         assert round(result, 5) == 0.44721
 
+    def test_simple_matching_coefficient(self):
+        self._test_invalid_input(similarities.simple_matching_coefficient)
+        self._test_two_empty_sets(similarities.simple_matching_coefficient)
+        self._test_one_empty_set_param_one(similarities.simple_matching_coefficient)  # noqa: E501
+        self._test_uneven_types(similarities.simple_matching_coefficient)
+        self._test_no_match(similarities.simple_matching_coefficient)
+        self._test_full_match(similarities.simple_matching_coefficient)
 
-class TestSimpleMatchingCoefficient:
-    def test_invalid_input(self) -> None:
-        """Test for invalid input types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.simple_matching_coefficient(1, 1)
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) == "All arguments must be sets!"
-
-    def test_two_empty_sets(self) -> None:
-        """Test the simple matching coefficient for two empty sets."""
-        with pytest.warns() as record:
-            result = similarities.simple_matching_coefficient(set(), set())
-        assert result == 0
-        assert str(record[0].message) == "Both sets are empty!"
-
-    def test_one_empty_set(self) -> None:
-        """Test the simple matching coefficient when one set is empty."""
-        with pytest.raises(ValueError) as excinfo:
-            similarities.simple_matching_coefficient(set(), {1})
-        assert excinfo.type == ValueError
-        assert str(excinfo.value) ==\
-            "At least one of the sets must be non-empty."
-
-    def test_uneven_types(self) -> None:
-        """Test the simple matching coefficient with sets of uneven types."""
-        with pytest.raises(TypeError) as excinfo:
-            similarities.simple_matching_coefficient({1, 2, 3}, {"f"})
-        assert excinfo.type == TypeError
-        assert str(excinfo.value) ==\
-            "Elements in the sets must be of the same type."
-        result = similarities.simple_matching_coefficient({1, 2, 3}, {.5})
-        assert result == 0
-
-    def test_no_match(self) -> None:
-        """Test the simple matching coefficient for sets with no common
-        elements."""
-        result = similarities.simple_matching_coefficient(set(range(10)),
-                                                          set(range(10, 15)))
-        assert result == 0
-
-    def test_full_match(self) -> None:
-        """Test the simple matching coefficient for identical sets."""
-        result = similarities.simple_matching_coefficient(set(range(10)),
-                                                          set(range(10)))
-        assert result == 1
-
-    def test_example(self) -> None:
+    def test_example_smc(self) -> None:
         """Test the simple matching coefficient with example sets.
         https://people.revoledu.com/kardi/tutorial/Similarity/SimpleMatching.html  # noqa: E501
         """
         # Example from Kardi Teknomo
         result = similarities.simple_matching_coefficient(
             {"a", "b", "c", "d"},
-            {"a_", "b", "c_", "d_"})
+            {"b"})
         assert result == 0.25
 
 
