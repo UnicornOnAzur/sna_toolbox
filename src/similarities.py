@@ -168,8 +168,8 @@ def simple_matching_coefficient(set1: set, set2: set, all=None) -> float:
 
     Parameters:
     set1: The first set.
-    set2: The second set.'
-    all: <>
+    set2: The second set.
+    all: The entire set of all options, default is None.
 
     Returns:
     float: The simple matching coefficient between the two sets.
