@@ -26,10 +26,11 @@ class TestSetSimilarity:
         assert result == 0
 
     def _test_one_empty_set_param_one(self, method):
-        with pytest.raises(
-                ValueError,
-                match="At least one of the sets must be non-empty."):
-            method(set(), {1})
+        with pytest.warns() as record:
+            result = method(set(), {1})
+        assert result is None
+        assert str(record[0].message) ==\
+            "At least one of the sets must be non-empty."
 
     def _test_uneven_types(self, method):
         with pytest.raises(

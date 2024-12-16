@@ -51,7 +51,6 @@ def validate_input(option: typing.Optional[str] = None) -> typing.Callable:
             Raises:
             TypeError: If any argument is not a set or if elements are of`
                        different types.
-            ValueError: If option is "one" and at least one set is empty.
 
             Returns:
             The result of the decorated function if validation passes or 0 if
@@ -66,7 +65,8 @@ def validate_input(option: typing.Optional[str] = None) -> typing.Callable:
                 return 0
             # Ensure at least one set is non-empty if option is "one"
             if option == "one" and any(not s for s in args[:2]):
-                raise ValueError("At least one of the sets must be non-empty.")
+                warnings.warn("At least one of the sets must be non-empty.")
+                return None
 
             # Ensure all elements in the sets are of the same type
             if len({numbers.Number if isinstance(c, numbers.Number)
