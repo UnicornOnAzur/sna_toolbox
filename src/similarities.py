@@ -156,7 +156,10 @@ def cosine_similarity(set1: set, set2: set) -> float:
 
 
 @validate_input("one")
-def simple_matching_coefficient(set1: set, set2: set, all=None) -> float:
+def simple_matching_coefficient(set1: set,
+                                set2: set,
+                                total_range: typing.Optional[set] = None
+                                ) -> float:
 
     """Calculate the simple matching coefficient between two sets.
 
@@ -169,19 +172,16 @@ def simple_matching_coefficient(set1: set, set2: set, all=None) -> float:
     Parameters:
     set1: The first set.
     set2: The second set.
-    all: The entire set of all options, default is None.
+    total_range: The entire set of all options, default is None.
 
     Returns:
     float: The simple matching coefficient between the two sets.
     """
-    if not all:
-        all = set1 | set2
-    vector1: list[int] = [1 if i in set1 else 0 for i in all]
-    vector2: list[int] = [1 if i in set2 else 0 for i in all]
-    p: int = sum(v1 == 1 and v2 == 1 for v1, v2 in zip(vector1, vector2))
-    s: int = sum(v1 == 0 and v2 == 0 for v1, v2 in zip(vector1, vector2))
-    q: int = sum(v1 == 1 and v2 == 0 for v1, v2 in zip(vector1, vector2))
-    r: int = sum(v1 == 0 and v2 == 1 for v1, v2 in zip(vector1, vector2))
+    all_ = set1 | set2 if not total_range else total_range
+    p: int = len(set1 & set2)
+    q: int = len(set1 - set2)
+    r: int = len(set2 - set1)
+    s: int = len((set1 ^ all_) & (set2 ^ all_))
     return (p + s) / (p + q + r + s)
 
 
