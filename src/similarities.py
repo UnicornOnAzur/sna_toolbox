@@ -2,10 +2,10 @@
 """
 @author: UnicornOnAzur
 
-This module provides functions to calculate five similarity measures, namely:
-Overlap coefficient, Jaccard similarity, Dice-Sørensen coefficient, Cosine
-similarity, and simple matching coefficient. Input validation is performed to
-ensure that the provided sets meet the required criteria for each calculation.
+This module provides functions to calculate five similarity measures: Overlap
+coefficient, Jaccard similarity, Dice-Sørensen coefficient, Cosine similarity,
+simple matching coefficient, and Hamming coefficient. Input validation ensures that the provided
+sets meet the required criteria for each calculation.
 """
 
 # Standard library
@@ -24,9 +24,16 @@ def validate_input(option: typing.Optional[str] = None) -> typing.Callable:
     option: Optional parameter to specify validation rules. If "one", at least
             one set must be non-empty.
 
+    Raises:
+    ValueError: If option is provided and is not "one".
+
     Returns:
     function: The wrapped function with input validation.
     """
+    if option and option != "one":
+        raise ValueError(
+            "The provided option is incorrect; it can only be 'one'")
+
     def decorator_validate_input(func: typing.Callable) -> typing.Callable:
         """
         Inner decorator to apply validation to the function.
@@ -39,7 +46,7 @@ def validate_input(option: typing.Optional[str] = None) -> typing.Callable:
         """
         # Preserves the metadata of the original function, such as name.
         @functools.wraps(func)
-        def wrapper(*args: tuple[typing.Set]) -> typing.Any:
+        def wrapper_validate_input(*args: tuple[typing.Set]) -> typing.Any:
             """
             Wrapper function that performs input validation before calling the
             function.
@@ -49,38 +56,47 @@ def validate_input(option: typing.Optional[str] = None) -> typing.Callable:
                   validated.
 
             Raises:
-            TypeError: If any argument is not a set or if elements are of`
+            TypeError: If any argument is not a set or if elements are of
                        different types.
 
             Returns:
             The result of the decorated function if validation passes or 0 if
-            both sets are empty.'
+            both sets are empty.
             """
             # Validate that all arguments are sets
             if not all(isinstance(s, set) for s in args):
                 raise TypeError("All arguments must be sets!")
-            # Return 0 if all sets are empty
-            if all(not s for s in args):
-                warnings.warn("Both sets are empty!", UserWarning)
-                return 0
             # Ensure at least one set is non-empty if option is "one"
             if option == "one" and any(not s for s in args[:2]):
                 warnings.warn("At least one of the sets must be non-empty.")
                 return None
-
+            # Return 0 if all sets are empty
+            if all(not s for s in args[:2]):
+                warnings.warn("Both sets are empty!", UserWarning)
+                return 0
             # Ensure all elements in the sets are of the same type
             if len({numbers.Number if isinstance(c, numbers.Number)
                     else type(c) for c in args[0] | args[1]}) != 1:
                 raise TypeError(
                     "Elements in the sets must be of the same type.")
-            else:
-                return func(*args)
-        return wrapper
+            # Ensure that the provided totalrange is a superset of the other
+            # two sets, otherwise remove it from the arguments
+            if len(args) == 3:
+                set1, set2, total_range = args
+                if not total_range >= (set1 | set2):
+                    warnings.warn("The total range provided is not a superset of the other two sets",  # noqa E501
+                                  UserWarning)
+                    args = args[:2]
+            return func(*args)
+        return wrapper_validate_input
     return decorator_validate_input
 
 
 @validate_input("one")
-def overlap_coefficient(set1: set, set2: set) -> float:
+def overlap_coefficient(set1: set,
+                        set2: set,
+                        total_range: typing.Optional[set] = None,
+                        /) -> float:
     """Calculate the overlap coefficient between two sets.
 
     Formula:
@@ -89,6 +105,8 @@ def overlap_coefficient(set1: set, set2: set) -> float:
     Parameters:
     set1: The first set.
     set2: The second set.
+    total_range: The entire set of all options, default is None. Unused in
+    this function but there for consistency.
 
     Returns:
     float: The overlap coefficient between the two sets.
@@ -97,7 +115,10 @@ def overlap_coefficient(set1: set, set2: set) -> float:
 
 
 @validate_input()
-def jaccard_similarity(set1: set, set2: set) -> float:
+def jaccard_similarity(set1: set,
+                       set2: set,
+                       total_range: typing.Optional[set] = None,
+                       /) -> float:
     """Calculate the Jaccard coefficient between two sets.
 
     Formula:
@@ -106,6 +127,8 @@ def jaccard_similarity(set1: set, set2: set) -> float:
     Parameters:
     set1: The first set.
     set2: The second set.
+    total_range: The entire set of all options, default is None. Unused in
+    this function but there for consistency.
 
     Returns:
     float: The Jaccard coefficient between the two sets.
@@ -114,7 +137,10 @@ def jaccard_similarity(set1: set, set2: set) -> float:
 
 
 @validate_input()
-def dice_sørensen_coefficient(set1: set, set2: set) -> float:
+def dice_sørensen_coefficient(set1: set,
+                              set2: set,
+                              total_range: typing.Optional[set] = None,
+                              /) -> float:
     """Calculate the Dice-Sørensen coefficient between two sets.
 
     Formula:
@@ -123,6 +149,8 @@ def dice_sørensen_coefficient(set1: set, set2: set) -> float:
     Parameters:
     set1: The first set.
     set2: The second set.
+    total_range: The entire set of all options, default is None. Unused in
+    this function but there for consistency.
 
     Returns:
     float: The Dice-Sørensen coefficient between the two sets.
@@ -131,7 +159,10 @@ def dice_sørensen_coefficient(set1: set, set2: set) -> float:
 
 
 @validate_input("one")
-def cosine_similarity(set1: set, set2: set) -> float:
+def cosine_similarity(set1: set,
+                      set2: set,
+                      total_range: typing.Optional[set] = None,
+                      /) -> float:
     """Calculate the cosine coefficient between two sets.
 
     Formula:
@@ -140,26 +171,27 @@ def cosine_similarity(set1: set, set2: set) -> float:
     Parameters:
     set1: The first set.
     set2: The second set.
+    total_range: The entire set of all options, default is None. Unused in
+    this function but there for consistency.
 
     Returns:
     float: The cosine coefficient between the two sets.
     """
-    intersection = set1 | set2
-    vector1 = [1 if i in set1 else 0 for i in intersection]
-    vector2 = [1 if i in set2 else 0 for i in intersection]
-    dot_product = sum(a * b for a, b in zip(vector1, vector2))
-    norm_a = math.sqrt(sum(a ** 2 for a in vector1))
-    norm_b = math.sqrt(sum(b ** 2 for b in vector2))
-    if dot_product == 0:
-        return 0
-    return dot_product / (norm_a * norm_b)
+    intersection: set = set1 | set2
+    vector1: list[int] = [1 if i in set1 else 0 for i in intersection]
+    vector2: list[int] = [1 if i in set2 else 0 for i in intersection]
+    dot_product: int = sum(a * b for a, b in zip(vector1, vector2))
+    norm_a: float = math.sqrt(sum(a ** 2 for a in vector1))
+    norm_b: float = math.sqrt(sum(b ** 2 for b in vector2))
+    magnitude: float = norm_a * norm_b
+    return dot_product / magnitude
 
 
 @validate_input("one")
 def simple_matching_coefficient(set1: set,
                                 set2: set,
-                                total_range: typing.Optional[set] = None
-                                ) -> float:
+                                total_range: typing.Optional[set] = None,
+                                /) -> float:
 
     """Calculate the simple matching coefficient between two sets.
 
@@ -177,7 +209,7 @@ def simple_matching_coefficient(set1: set,
     Returns:
     float: The simple matching coefficient between the two sets.
     """
-    all_ = set1 | set2 if not total_range else total_range
+    all_: set = set1 | set2 if not total_range else total_range
     p: int = len(set1 & set2)
     q: int = len(set1 - set2)
     r: int = len(set2 - set1)
@@ -185,11 +217,52 @@ def simple_matching_coefficient(set1: set,
     return (p + s) / (p + q + r + s)
 
 
+def hamming_distance(set1: set, set2: set) -> int:
+    """
+    Calculate the Hamming distance between two sets.
+
+    The Hamming distance is defined as the number of elements that are 
+    present in either of the sets but not in both. This function uses 
+    the symmetric difference operator to compute the distance.
+
+    Parameters:
+    set1 : The first set of elements.
+    set2 : The second set of elements.
+
+    Returns:
+    int: The Hamming distance between the two sets.
+    """
+    return len(set1 ^ set2)
+
+
+@validate_input()
+def hamming_coefficient(set1: set,
+                        set2: set,
+                        total_range: typing.Optional[set] = None,
+                        /) -> float:
+    """
+    Calculate the Hamming coefficient between two sets.
+
+    The Hamming coefficient is the Hamming distance divided by the length of
+    the total range.
+
+    Parameters:
+    set1 : The first set.
+    set2 : The second set.
+    total_range : The entire set of all options, default is None.
+
+    Returns:
+    float: The Hamming coefficient, a value between 0 and 1.
+    """
+    all_: set = set1 | set2 if not total_range else total_range
+    return hamming_distance(set1, set2) / len(all_)
+
+
 def demo():
     # Example usage of the coefficients
     print("Demonstration of the coefficients")
-    set_a = {1, 2, 3}
-    set_b = {2, 3, 4}
+    set_a: set = {1, 2, 3}
+    set_b: set = {2, 3, 4}
 
     print(f"Set A: {set_a} and set B: {set_b}")
     print("Overlap Coefficient:", overlap_coefficient(set_a, set_b))
@@ -197,6 +270,7 @@ def demo():
     print("Dice-Sørensen Coefficient:", dice_sørensen_coefficient(set_a, set_b))  # noqa: E501
     print("Cosine Similarity:", cosine_similarity(set_a, set_b))
     print("Simple Matching Coefficient:", simple_matching_coefficient(set_a, set_b))  # noqa: E501
+    print("Hamming Coefficient:", hamming_coefficient(set_a, set_b))
 
 
 if __name__ == "__main__":
