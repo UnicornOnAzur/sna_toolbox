@@ -4,62 +4,123 @@
 
 """
 
+# Standard library
+import typing
 # Third party
 import pytest
 # Local
 import sna_toolbox.src.similarities as similarities
 
 
-class TestSetSimilarity:
-    def _test_invalid_input(self, method):
-        with pytest.raises(TypeError, match="All arguments must be sets!"):
-            method(1, 1)
+def _test_no_match(method: typing.Callable[[typing.Set[typing.Any],
+                                            typing.Set[typing.Any]],
+                                           float]) -> None:
+    """Test case for no match between two sets."""
+    result = method(set(range(10)), set(range(10, 15)))
+    assert result == 0
 
-    def _test_two_empty_sets(self, method):
-        with pytest.warns() as record:
-            result = method(set(), set())
+
+def _test_full_match(method: typing.Callable[[typing.Set[typing.Any],
+                                              typing.Set[typing.Any]],
+                                             float]) -> None:
+    """Test case for full match between two sets."""
+    result = method(set(range(10)), set(range(10)))
+    assert round(result) == 1
+
+
+class TestInputValidation:
+
+    def test_invalid_option(self) -> None:
+        """Test for invalid option in input validation."""
+        with pytest.raises(
+                ValueError,
+                match="The provided option is incorrect; it can only be 'one'"
+                ):
+            @similarities.validate_input("two")
+            def func() -> None:
+                pass
+
+    def test_invalid_input(self) -> None:
+        """Test for invalid input types."""
+        @similarities.validate_input()
+        def func() -> None:
+            pass
+        with pytest.raises(TypeError,
+                           match="All arguments must be sets!"):
+            func(1, 1)
+        with pytest.raises(TypeError,
+                           match="All arguments must be sets!"):
+            func({1}, 1)
+
+    def test_one_empty_sets(self) -> None:
+        """Test for one empty set."""
+        @similarities.validate_input()
+        def func(*args) -> int:
+            return 0
+        result = func({1}, set())
         assert result == 0
-        assert str(record[0].message) == "Both sets are empty!"
 
-    def _test_one_empty_set(self, method):
-        result = method({1}, set())
-        assert result == 0
-
-    def _test_one_empty_set_param_one(self, method):
+        @similarities.validate_input("one")
+        def func() -> None:
+            pass
         with pytest.warns() as record:
-            result = method(set(), {1})
+            result = func({1}, set())
         assert result is None
         assert str(record[0].message) ==\
             "At least one of the sets must be non-empty."
 
-    def _test_uneven_types(self, method):
+    def test_two_empty_sets(self) -> None:
+        """Test for two empty sets."""
+        @similarities.validate_input()
+        def func() -> None:
+            pass
+        with pytest.warns() as record:
+            result = func(set(), set())
+        assert result == 0
+        assert str(record[0].message) == "Both sets are empty!"
+
+        @similarities.validate_input("one")
+        def func() -> None:
+            pass
+        with pytest.warns() as record:
+            result = func(set(), set())
+        assert result is None
+        assert str(record[0].message) ==\
+            "At least one of the sets must be non-empty."
+
+    def test_uneven_types(self) -> None:
+        """Test for not the same types in sets."""
+        @similarities.validate_input()
+        def func(*args) -> None:
+            return 0
         with pytest.raises(
                 TypeError,
                 match="Elements in the sets must be of the same type."):
-            method({1, 2, 3}, {"f"})
-        result = method({1, 2, 3}, {.5})
+            func({1, 2, 3}, {"f"})
+        result = func({1, 2, 3}, {.5})
         assert result == 0
 
-    def _test_no_match(self, method):
-        result = method(set(range(10)), set(range(10, 15)))
-        assert result == 0
+    def test_invalid_total_range(self) -> None:
+        """Test for invalid total range in set inputs."""
+        @similarities.validate_input()
+        def func(*args) -> None:
+            pass
+        with pytest.warns() as record:
+            result = func({1}, {2}, {3})
+        assert result is None
+        assert str(record[0].message) ==\
+            "The total range provided is not a superset of the other two sets"
 
-    def _test_full_match(self, method):
-        result = method(set(range(10)), set(range(10)))
-        assert round(result) == 1
 
-    def _test_example(self, method, example_sets, expected_results):
-        for example_set, expected in zip(example_sets, expected_results):
-            result = method(*example_set)
-            assert result == expected
+class TestOverlapCoefficient:
 
-    def test_overlap_coefficient(self):
-        self._test_invalid_input(similarities.overlap_coefficient)
-        self._test_two_empty_sets(similarities.overlap_coefficient)
-        self._test_one_empty_set_param_one(similarities.overlap_coefficient)
-        self._test_uneven_types(similarities.overlap_coefficient)
-        self._test_no_match(similarities.overlap_coefficient)
-        self._test_full_match(similarities.overlap_coefficient)
+    def test_no_match(self) -> None:
+        """Test for no match in overlap coefficient."""
+        _test_no_match(similarities.overlap_coefficient)
+
+    def test_full_match(self) -> None:
+        """Test for full match in overlap coefficient."""
+        _test_full_match(similarities.overlap_coefficient)
 
     def test_example_overlap(self) -> None:
         """Test the overlap coefficient with example sets.
@@ -80,13 +141,16 @@ class TestSetSimilarity:
                            )
         assert results == [0.5, 0.556, 0.625, 0.714, 0.833, 1]
 
-    def test_jaccard_similarity(self):
-        self._test_invalid_input(similarities.jaccard_similarity)
-        self._test_two_empty_sets(similarities.jaccard_similarity)
-        self._test_one_empty_set(similarities.jaccard_similarity)
-        self._test_uneven_types(similarities.jaccard_similarity)
-        self._test_no_match(similarities.jaccard_similarity)
-        self._test_full_match(similarities.jaccard_similarity)
+
+class TestJaccardCoeffienct:
+
+    def test_no_match(self) -> None:
+        """Test for no match in jaccard similarity."""
+        _test_no_match(similarities.jaccard_similarity)
+
+    def test_full_match(self) -> None:
+        """Test for full match in jaccard similarity."""
+        _test_full_match(similarities.jaccard_similarity)
 
     def test_example_jaccard(self) -> None:
         """Test the Jaccard similarity with example sets.
@@ -122,13 +186,16 @@ class TestSetSimilarity:
                                                  {4, 1, 9, 7, 5})
         assert round(result, 3) == 0.429
 
-    def test_dice_sørensen_coefficient(self):
-        self._test_invalid_input(similarities.dice_sørensen_coefficient)
-        self._test_two_empty_sets(similarities.dice_sørensen_coefficient)
-        self._test_one_empty_set(similarities.dice_sørensen_coefficient)
-        self._test_uneven_types(similarities.dice_sørensen_coefficient)
-        self._test_no_match(similarities.dice_sørensen_coefficient)
-        self._test_full_match(similarities.dice_sørensen_coefficient)
+
+class TestDiceSorensen:
+
+    def test_no_match(self) -> None:
+        """Test for no match in dice sørensen coefficient."""
+        _test_no_match(similarities.dice_sørensen_coefficient)
+
+    def test_full_match(self) -> None:
+        """Test for full match in dice sørensen coefficient."""
+        _test_full_match(similarities.dice_sørensen_coefficient)
 
     def test_example_dice(self) -> None:
         """Test the Dice-Sørensen coefficient with example sets.
@@ -140,13 +207,16 @@ class TestSetSimilarity:
              {"na", "ac", "ch", "ht"})
         assert result == 0.25
 
-    def test_cosine_coefficient(self):
-        self._test_invalid_input(similarities.cosine_similarity)
-        self._test_two_empty_sets(similarities.cosine_similarity)
-        self._test_one_empty_set_param_one(similarities.cosine_similarity)
-        self._test_uneven_types(similarities.cosine_similarity)
-        self._test_no_match(similarities.cosine_similarity)
-        self._test_full_match(similarities.cosine_similarity)
+
+class TestCosineSimilarity:
+
+    def test_no_match(self) -> None:
+        """Test for no match in cosine similarity."""
+        _test_no_match(similarities.cosine_similarity)
+
+    def test_full_match(self) -> None:
+        """Test for full match in cosine similarity."""
+        _test_full_match(similarities.cosine_similarity)
 
     def test_example_cosine(self) -> None:
         """Test the cosine similarity with example sets.
@@ -158,13 +228,16 @@ class TestSetSimilarity:
             set('data science is popular'.split(" ")))
         assert round(result, 5) == 0.44721
 
-    def test_simple_matching_coefficient(self):
-        self._test_invalid_input(similarities.simple_matching_coefficient)
-        self._test_two_empty_sets(similarities.simple_matching_coefficient)
-        self._test_one_empty_set_param_one(similarities.simple_matching_coefficient)  # noqa: E501
-        self._test_uneven_types(similarities.simple_matching_coefficient)
-        self._test_no_match(similarities.simple_matching_coefficient)
-        self._test_full_match(similarities.simple_matching_coefficient)
+
+class TestSMC:
+
+    def test_no_match(self):
+        """Test for no match in simple matching coefficient."""
+        _test_no_match(similarities.simple_matching_coefficient)
+
+    def test_full_match(self):
+        """Test for full match in simple matching coefficient."""
+        _test_full_match(similarities.simple_matching_coefficient)
 
     def test_example_smc(self) -> None:
         """Test the simple matching coefficient with example sets.
@@ -175,6 +248,60 @@ class TestSetSimilarity:
             {"a", "b", "c", "d"},
             {"b"})
         assert result == 0.25
+
+
+class TestHammingDistance:
+
+    def test_full_overlap(self):
+        """Test for full overlap meaning no score on hamming distance."""
+        result = similarities.hamming_distance(set(range(10)), set(range(10)))
+        assert round(result) == 0
+
+    def test_no_overlap(self):
+        """Test for no match in hamming coefficient meaning no match."""
+        result = similarities.hamming_distance(set(range(10)), set(range(10, 15)))
+        assert result == 15
+
+
+class TestHammingCoefficient:
+
+    def test_no_match(self):
+        """Test for full match in hamming coefficient meaning no match."""
+        result = similarities.hamming_coefficient(set(range(10)), set(range(10)))
+        assert round(result) == 0
+
+    def test_full_match(self):
+        """Test for no match in hamming coefficient meaning no match."""
+        result = similarities.hamming_coefficient(set(range(10)), set(range(10, 15)))
+        assert result == 1
+
+    def test_example_hamming(self) -> None:
+        """
+        Test the Hamming coefficient calculation for various sets.
+
+        This function tests the similarities.hamming_coefficient method
+        by asserting the expected results for different sets of integers.
+        It checks the Hamming coefficient for two pairs of sets and ensures
+        that the output matches the expected values.
+        """
+        # Test case 1
+        set_a = {1, 2, 3, 4}
+        set_b = {2, 3, 4, 5, 6}
+        result = similarities.hamming_coefficient(set_a, set_b)
+        assert result == 0.5, f"Expected 0.5 but got {result}"
+
+        # Test case 2
+        set_c = {1, 2, 3}
+        set_d = {3, 4}
+        set_e = {1, 2, 3, 4, 5, 6}
+        result = similarities.hamming_coefficient(set_c, set_d, set_e)
+        assert result == 0.5, f"Expected 0.5 but got {result}"
+
+        # Example from Kardi Teknomo
+        result = similarities.hamming_coefficient(
+            {"a", "b", "c", "d"},
+            {"b"})
+        assert result == 0.75
 
 
 if __name__ == "__main__":
