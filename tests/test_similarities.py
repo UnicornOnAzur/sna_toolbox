@@ -1,7 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-@author: UnicornOnAzur
+Module for testing similarity measures.
 
+This module contains unit tests for various similarity measures implemented
+in the `sna_toolbox.src.similarities` module. It includes tests for input
+validation and specific similarity functions such as overlap coefficient,
+Jaccard similarity, Dice-Sorensen coefficient, cosine similarity, simple
+matching coefficient, Hamming distance, and Hamming coefficient.
+
+@author: UnicornOnAzur
 """
 
 # Standard library
