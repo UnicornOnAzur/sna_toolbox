@@ -29,6 +29,7 @@ def _test_full_match(method: typing.Callable[[typing.Set[typing.Any],
 
 
 class TestInputValidation:
+    """Test cases for the validation wrapper."""
 
     def test_invalid_option(self) -> None:
         """Test for invalid option in input validation."""
@@ -158,11 +159,16 @@ class TestJaccardCoeffienct:
         https://developer.nvidia.com/blog/similarity-in-graphs-jaccard-versus-the-overlap-coefficient/  # noqa: E501
         https://www.learndatasci.com/glossary/jaccard-similarity/
         https://people.revoledu.com/kardi/tutorial/Similarity/Jaccard.html
+        https://medium.com/@mayurdhvajsinhjadeja/jaccard-similarity-34e2c15fb524
         """
         # Example from Zach Bobbitt
         result = similarities.jaccard_similarity({0, 1, 2, 5, 6, 8, 9},
                                                  {0, 2, 3, 4, 5, 7, 9})
         assert result == 0.4
+        set_a = {"cat", "dog", "hippo", "monkey"}
+        set_b = {"monkey", "rhino", "ostrich", "salmon"}
+        result = similarities.jaccard_similarity(set_a, set_b)
+        assert round(result, 3) == 0.143
         # Example from Nefi Alcron
         result = similarities.jaccard_similarity({2, 3, 4, 5},
                                                  {1, 3, 4, 5})
@@ -185,7 +191,11 @@ class TestJaccardCoeffienct:
         result = similarities.jaccard_similarity({7, 3, 2, 4, 1},
                                                  {4, 1, 9, 7, 5})
         assert round(result, 3) == 0.429
-
+        # Example from Mayurdhvajsinh Jadeja
+        set_c = {"Lion", "Tiger", "Cheetah", "Leopard", "Rhino"}
+        set_d = {"Lion", "Monkey", "Cheetah", "Cat", "Dog"}
+        result = similarities.jaccard_similarity(set_c, set_d)
+        assert result == 0.25
 
 class TestDiceSorensen:
 
@@ -224,18 +234,18 @@ class TestCosineSimilarity:
         """
         # Example from Fatih Karabiber
         result = similarities.cosine_similarity(
-            set('the best data science course'.split(" ")),
-            set('data science is popular'.split(" ")))
+            set("the best data science course".split(" ")),
+            set("data science is popular".split(" ")))
         assert round(result, 5) == 0.44721
 
 
-class TestSMC:
+class TestSimpleMatchingCoefficient:
 
-    def test_no_match(self):
+    def test_no_match(self) ->  None:
         """Test for no match in simple matching coefficient."""
         _test_no_match(similarities.simple_matching_coefficient)
 
-    def test_full_match(self):
+    def test_full_match(self) ->  None:
         """Test for full match in simple matching coefficient."""
         _test_full_match(similarities.simple_matching_coefficient)
 
@@ -252,38 +262,32 @@ class TestSMC:
 
 class TestHammingDistance:
 
-    def test_full_overlap(self):
-        """Test for full overlap meaning no score on hamming distance."""
+    def test_full_overlap(self) -> None:
+        """Test for full overlap, expecting a Hamming distance of zero."""
         result = similarities.hamming_distance(set(range(10)), set(range(10)))
         assert round(result) == 0
 
-    def test_no_overlap(self):
-        """Test for no match in hamming coefficient meaning no match."""
+    def test_no_overlap(self) -> None:
+        """Test for no overlap, expecting a Hamming distance equal to the size
+        of the union."""
         result = similarities.hamming_distance(set(range(10)), set(range(10, 15)))
         assert result == 15
 
 
 class TestHammingCoefficient:
 
-    def test_no_match(self):
-        """Test for full match in hamming coefficient meaning no match."""
+    def test_no_match(self) -> None:
+        """Test for full match in Hamming coefficient, expecting no match."""
         result = similarities.hamming_coefficient(set(range(10)), set(range(10)))
         assert round(result) == 0
 
-    def test_full_match(self):
-        """Test for no match in hamming coefficient meaning no match."""
+    def test_full_match(self) -> None:
+        """Test for no match in Hamming coefficient, expecting a full match."""
         result = similarities.hamming_coefficient(set(range(10)), set(range(10, 15)))
         assert result == 1
 
     def test_example_hamming(self) -> None:
-        """
-        Test the Hamming coefficient calculation for various sets.
-
-        This function tests the similarities.hamming_coefficient method
-        by asserting the expected results for different sets of integers.
-        It checks the Hamming coefficient for two pairs of sets and ensures
-        that the output matches the expected values.
-        """
+        """Test the Hamming coefficient calculation with example sets."""
         # Test case 1
         set_a = {1, 2, 3, 4}
         set_b = {2, 3, 4, 5, 6}
